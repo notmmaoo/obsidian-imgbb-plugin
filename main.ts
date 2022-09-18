@@ -4,12 +4,12 @@ import { parse, extname } from "path";
 import { existsSync, readFileSync } from "fs";
 // Remember to rename these classes and interfaces!
 
-interface MyPluginSettings {
-	mySetting: string;
+interface ImgbbPluginSettings {
+	ImgbbKeySetting: string;
 }
 
-const DEFAULT_SETTINGS: MyPluginSettings = {
-	mySetting: 'default'
+const DEFAULT_SETTINGS: ImgbbPluginSettings = {
+	ImgbbKeySetting: 'default'
 }
 
 interface Image {
@@ -23,8 +23,8 @@ const REGEX_WIKI_FILE = /\!\[\[(.*?)\]\]/g;
 
 const IMAGE_TYPE = [".png", ".jpg", ".jpeg", ".bmp", ".gif", ".svg", ".tiff"]
 
-export default class MyPlugin extends Plugin {
-	settings: MyPluginSettings;
+export default class ImgbbPlugin extends Plugin {
+	settings: ImgbbPluginSettings;
 
 	async onload() {
 		await this.loadSettings();
@@ -34,7 +34,7 @@ export default class MyPlugin extends Plugin {
 			this.uploadAllImages();
 		});
 		// Perform additional things with the ribbon
-		ribbonIconEl.addClass('my-plugin-ribbon-class');
+		ribbonIconEl.addClass('imgbb-plugin-ribbon-class');
 
 		// This adds a status bar item to the bottom of the app. Does not work on mobile apps.
 		const statusBarItemEl = this.addStatusBarItem();
@@ -143,7 +143,7 @@ export default class MyPlugin extends Plugin {
 		const file = readFileSync(localFile);
 		const base64 = file.toString('base64');
 		const form = new FormData();
-		form.append('key', this.settings.mySetting);
+		form.append('key', this.settings.ImgbbKeySetting);
 		form.append('name', name);
 		form.append('image', base64);
 
@@ -159,9 +159,9 @@ export default class MyPlugin extends Plugin {
 }
 
 class SampleSettingTab extends PluginSettingTab {
-	plugin: MyPlugin;
+	plugin: ImgbbPlugin;
 
-	constructor(app: App, plugin: MyPlugin) {
+	constructor(app: App, plugin: ImgbbPlugin) {
 		super(app, plugin);
 		this.plugin = plugin;
 	}
@@ -171,17 +171,17 @@ class SampleSettingTab extends PluginSettingTab {
 
 		containerEl.empty();
 
-		containerEl.createEl('h2', { text: 'Settings for my awesome plugin.' });
+		containerEl.createEl('h2', { text: 'Settings for imgbb plugin.' });
 
 		new Setting(containerEl)
-			.setName('Setting KEY')
+			.setName('Setting Imgbb API KEY, register at https://api.imgbb.com/')
 			.setDesc('It\'s a secret')
 			.addText(text => text
 				.setPlaceholder('Enter your secret')
-				.setValue(this.plugin.settings.mySetting)
+				.setValue(this.plugin.settings.ImgbbKeySetting)
 				.onChange(async (value) => {
 					console.log('Secret: ' + value);
-					this.plugin.settings.mySetting = value;
+					this.plugin.settings.ImgbbKeySetting = value;
 					await this.plugin.saveSettings();
 				}));
 	}
