@@ -3,7 +3,7 @@
 	"name": "Imgbb Plugin",
 	"version": "1.0.0",
 	"minAppVersion": "0.15.0",
-	"description": "This is a Imgbb plugin for Obsidian.",
+	"description": "This plugin uploads images to Imgbb for Obsidian.",
 	"author": "notmmaoo",
 	"authorUrl": "https://github.com/notmmaoo/obsidian-imgbb-plugin",
 	"isDesktopOnly": false
