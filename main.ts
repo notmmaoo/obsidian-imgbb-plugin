@@ -49,7 +49,7 @@ export default class ImgbbPlugin extends Plugin {
 		});
 
 		// This adds a settings tab so the user can configure various aspects of the plugin
-		this.addSettingTab(new SampleSettingTab(this.app, this));
+		this.addSettingTab(new ImgbbSettingTab(this.app, this));
 	}
 
 	onunload() {
@@ -161,7 +161,7 @@ export default class ImgbbPlugin extends Plugin {
 	}
 }
 
-class SampleSettingTab extends PluginSettingTab {
+class ImgbbSettingTab extends PluginSettingTab {
 	plugin: ImgbbPlugin;
 
 	constructor(app: App, plugin: ImgbbPlugin) {
