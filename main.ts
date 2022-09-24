@@ -1,6 +1,6 @@
-import { App, MarkdownView, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import { App, MarkdownView, Notice, Plugin, PluginSettingTab, Setting, FileSystemAdapter } from 'obsidian';
 
-import { parse, extname } from "path";
+import { parse, extname, join } from "path";
 import { existsSync, readFileSync } from "fs";
 // Remember to rename these classes and interfaces!
 
@@ -72,6 +72,9 @@ export default class ImgbbPlugin extends Plugin {
 			const matches = value.matchAll(REGEX_FILE);
 			const WikiMatches = value.matchAll(REGEX_WIKI_FILE);
 
+			const basePath = (
+				this.app.vault.adapter as FileSystemAdapter
+			  ).getBasePath();
 			let imageList: Image[] = [];
 
 			for (const match of matches) {
@@ -94,10 +97,11 @@ export default class ImgbbPlugin extends Plugin {
 
 			for (const match of WikiMatches) {
 				const name = parse(match[1]).name;
-				const path = match[1].toLowerCase();;
+				let path = match[1].toLowerCase();;
 				const source = match[0];
 
 				let ext = extname(path)
+				path = join(basePath, path)
 				if (path.startsWith('http') || !IMAGE_TYPE.includes(ext)) {
 					continue
 				}
@@ -110,7 +114,6 @@ export default class ImgbbPlugin extends Plugin {
 				}
 			}
 
-			console.log(imageList);
 			if (imageList.length === 0) {
 				new Notice("没有解析到图像文件");
 				return;
