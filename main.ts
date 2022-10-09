@@ -1,8 +1,7 @@
-import { App, MarkdownView, Notice, Plugin, PluginSettingTab, Setting, FileSystemAdapter } from 'obsidian';
+import { App, MarkdownView, Notice, Plugin, PluginSettingTab, Setting, FileSystemAdapter, requestUrl } from 'obsidian';
 
 import { parse, extname, join } from "path";
 import { existsSync, readFileSync } from "fs";
-// Remember to rename these classes and interfaces!
 
 interface ImgbbPluginSettings {
 	ImgbbKeySetting: string;
@@ -29,21 +28,18 @@ export default class ImgbbPlugin extends Plugin {
 	async onload() {
 		await this.loadSettings();
 
-		// This creates an icon in the left ribbon.
-		const ribbonIconEl = this.addRibbonIcon('dice', 'Imgbb Plugin', (evt: MouseEvent) => {
+		// This creates an icon in the left ribbon. ref: https://lucide.dev/
+		const ribbonIconEl = this.addRibbonIcon('upload-cloud', 'Imgbb Plugin', (evt: MouseEvent) => {
 			this.uploadAllImages();
 		});
 		// Perform additional things with the ribbon
 		ribbonIconEl.addClass('imgbb-plugin-ribbon-class');
 
-		// This adds a status bar item to the bottom of the app. Does not work on mobile apps.
-		const statusBarItemEl = this.addStatusBarItem();
-		statusBarItemEl.setText('Status Bar Text');
-
 		this.addCommand({
 			id: 'upload all images',
 			name: 'Upload all images',
-			callback: () => {
+			// ref: https://marcus.se.net/obsidian-plugin-docs/user-interface/commands#editor-commands
+			editorCallback : () => {
 				this.uploadAllImages();
 			}
 		});
@@ -145,17 +141,19 @@ export default class ImgbbPlugin extends Plugin {
 		// post base64 of file
 		const file = readFileSync(localFile);
 		const base64 = file.toString('base64');
-		const form = new FormData();
-		form.append('key', this.settings.ImgbbKeySetting);
-		form.append('name', name);
-		form.append('image', base64);
-
-		const response = await fetch('https://api.imgbb.com/1/upload', {
+		const body ={
+			"key": this.settings.ImgbbKeySetting,
+			"image": base64,
+			"name": name,
+		}
+		const response = await requestUrl({
+			url: 'https://api.imgbb.com/1/upload',
 			method: "POST",
-			body: form,
+			contentType: "application/x-www-form-urlencoded",
+			body: new URLSearchParams(body).toString(),
 		});
 
-		const data = response.json();
+		const data = await response.json;
 		console.log(data)
 		return data;
 	}
