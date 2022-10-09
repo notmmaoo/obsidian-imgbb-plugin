@@ -1,7 +1,4 @@
-import { App, MarkdownView, Notice, Plugin, PluginSettingTab, Setting, FileSystemAdapter, requestUrl } from 'obsidian';
-
-import { parse, extname, join } from "path";
-import { existsSync, readFileSync } from "fs";
+import { App, MarkdownView, Notice, Plugin, PluginSettingTab, Setting, FileSystemAdapter, requestUrl, TFile } from 'obsidian';
 
 interface ImgbbPluginSettings {
 	ImgbbKeySetting: string;
@@ -11,7 +8,13 @@ const DEFAULT_SETTINGS: ImgbbPluginSettings = {
 	ImgbbKeySetting: 'default'
 }
 
-interface Image {
+interface UploadImage {
+	path: TFile;
+	name: string;
+	source: string;
+}
+
+interface localImage {
 	path: string;
 	name: string;
 	source: string;
@@ -39,7 +42,7 @@ export default class ImgbbPlugin extends Plugin {
 			id: 'upload all images',
 			name: 'Upload all images',
 			// ref: https://marcus.se.net/obsidian-plugin-docs/user-interface/commands#editor-commands
-			editorCallback : () => {
+			editorCallback: () => {
 				this.uploadAllImages();
 			}
 		});
@@ -67,58 +70,54 @@ export default class ImgbbPlugin extends Plugin {
 			let value = editor.getValue();
 			const matches = value.matchAll(REGEX_FILE);
 			const WikiMatches = value.matchAll(REGEX_WIKI_FILE);
-
-			const basePath = (
-				this.app.vault.adapter as FileSystemAdapter
-			  ).getBasePath();
-			let imageList: Image[] = [];
+			let uploadImageList: UploadImage[] = [];
+			let localImageList: localImage[] = [];
+			const files = this.app.vault.getFiles();
 
 			for (const match of matches) {
 				const name = match[1];
 				const path = match[2].toLowerCase();
 				const source = match[0];
-
-				let ext = extname(path)
-				if (path.startsWith('http') || !IMAGE_TYPE.includes(ext)) {
-					continue
-				}
-				if (existsSync(path)) {
-					imageList.push({
-						path: path,
-						name: name,
-						source: source,
-					});
-				}
+				localImageList.push({ path, name, source });
 			}
-
+			
 			for (const match of WikiMatches) {
-				const name = parse(match[1]).name;
-				let path = match[1].toLowerCase();;
+				const name = match[1];
+				const path = match[1].toLowerCase();;
 				const source = match[0];
-
-				let ext = extname(path)
-				path = join(basePath, path)
-				if (path.startsWith('http') || !IMAGE_TYPE.includes(ext)) {
+				localImageList.push({ path, name, source });
+			}
+			
+			for (const { path, name, source } of localImageList) {
+				if (path.startsWith('http')) {
 					continue
 				}
-				if (existsSync(path)) {
-					imageList.push({
-						path: path,
-						name: name,
-						source: source,
-					});
+				for (let i = 0; i < IMAGE_TYPE.length; i++) {
+					if (path.endsWith(IMAGE_TYPE[i])) {
+						break;
+					}
+				}
+				for (let i = 0; i < files.length; i++) {
+					if (files[i].path.toLowerCase().endsWith(path)) {
+						uploadImageList.push({
+							path: files[i],
+							name: name,
+							source: source
+						})
+						break;
+					}
 				}
 			}
 
-			if (imageList.length === 0) {
+			if (uploadImageList.length === 0) {
 				new Notice("没有解析到图像文件");
 				return;
 			} else {
-				new Notice(`共找到${imageList.length}个图像文件，开始上传`);
+				new Notice(`共找到${uploadImageList.length}个图像文件，开始上传`);
 			}
 
 			// upload imageList;
-			for (const match of imageList) {
+			for (const match of uploadImageList) {
 				const name = match.name;
 				const localFile = match.path;
 				this.uploadFile(localFile, name).then(res => {
@@ -130,18 +129,17 @@ export default class ImgbbPlugin extends Plugin {
 						new Notice("Upload error");
 					}
 				}).then(() => {
-					console.log("update editor");
 					editor.setValue(value);
 				});
 			}
 		}
 	}
 
-	async uploadFile(localFile: string, name: string): Promise<any> {
+	async uploadFile(localFile: TFile, name: string): Promise<any> {
 		// post base64 of file
-		const file = readFileSync(localFile);
-		const base64 = file.toString('base64');
-		const body ={
+		const file = await this.app.vault.readBinary(localFile);
+		const base64 = Buffer.from(file).toString('base64');
+		const body = {
 			"key": this.settings.ImgbbKeySetting,
 			"image": base64,
 			"name": name,
@@ -154,7 +152,6 @@ export default class ImgbbPlugin extends Plugin {
 		});
 
 		const data = await response.json;
-		console.log(data)
 		return data;
 	}
 }
